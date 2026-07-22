@@ -1,0 +1,21 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Anthropic",
+    "CCLA",
+    "claude",
+    "CODEOWNER",
+    "cooldown",
+    "frontmatter",
+    "ICLA",
+    "kernelsam",
+    "quickstarts",
+    "reusables",
+    "SENZ",
+    "Senzing"
+  ],
+  "ignorePaths": [
+    ".git/**"
+  ]
+}
