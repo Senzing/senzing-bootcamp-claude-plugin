@@ -1,0 +1,138 @@
+# Bootcamp Feedback Workflow (available at any time)
+
+The bootcamper can submit feedback at any point in the bootcamp: onboarding, any
+module, or graduation. Feedback is saved locally to
+`docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` and is never sent anywhere
+unless the bootcamper explicitly asks.
+
+This workflow is triggered by the plugin's `UserPromptSubmit` hook ("to capture
+bootcamp feedback") or by the `/bootcamp-feedback` command, or whenever the
+bootcamper says something like "bootcamp feedback", "I have feedback", or "report
+an issue". Follow `ground-rules.md`: one 👉 question per turn, end the turn on it.
+
+## Step 0: Capture context silently
+
+Before asking anything, silently capture as much relevant context as possible, so
+the bootcamper never has to re-explain it and so `feedback-to-specs` can later
+reconstruct the exact situation. Gather only from available sources — never ask an
+extra question for this — and record "Unknown"/"Unavailable" (never a guess) when a
+source is missing:
+
+- **Time:** the current date and time.
+- **Plugin version:** the `version` field of `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`.
+- **Workstation:** the operating system and platform the bootcamper is running on, from the environment/system context — OS name and version, and architecture if available.
+- **Model and effort:** the model name/ID and the reasoning-effort level in use, from the environment/system context.
+- **Context size:** the approximate size of the conversation context at the time of feedback — a token count and/or percentage of the context window in use. If only an estimate is available, label it as approximate rather than recording a precise-looking guess.
+- **Module and step:** `current_module`, `current_step`, and completed modules from `config/bootcamp_progress.json`.
+- **Recent questions and responses:** the last few 👉 questions asked and the bootcamper's answers, from the transcript.
+- **Behind the scenes:** what the plugin was doing — which hook fired, which skill/phase/gate was active, and any relevant config or state.
+- **Observed problem:** what the bootcamper saw.
+- **Expected behavior:** what the active hooks, skills, and `ground-rules.md` imply should have happened.
+- **Divergence:** the best assessment of why the expected action did not occur.
+
+## Step 1: Ensure the feedback file exists
+
+If `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` does not exist, create the
+`docs/feedback/` directory and write this header once:
+
+```markdown
+# Senzing Bootcamp Plugin Feedback
+
+Feedback captured during the Senzing Bootcamp. Saved locally only.
+
+**Started:** YYYY-MM-DD
+
+## Your Feedback
+```
+
+## Step 1b: Mark the start of feedback (entry banner)
+
+Steps 0 and 1 are silent/administrative. This is the first bootcamper-facing moment of the
+feedback workflow: present the pinned entry banner **verbatim** so the bootcamper clearly sees
+they have switched out of the bootcamp and into feedback collection. Show it before the first 👉
+feedback question (Step 2), in the same turn:
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝📝📝  BOOTCAMP FEEDBACK  📝📝📝
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+The banner is a statement, not a question; it never counts against the one-👉-per-turn rule.
+
+## Step 2: Gather the feedback, one 👉 question at a time
+
+Ask these in order, each as its own turn (pre-fill the module from captured
+context so you do not ask the bootcamper to repeat it):
+
+1. 👉 **What would you like to give feedback about?**
+2. 👉 **What happened?**
+3. 👉 **Why does it matter to you?**
+4. 👉 **Do you have a suggested fix?**
+5. 👉 **What priority would you give this? Reply with a number:** (1) High, (2) Medium, (3) Low.
+
+If the bootcamper gives everything in one message, do not re-ask: confirm what you
+captured and proceed.
+
+## Step 3: Append the entry (never overwrite)
+
+Append a formatted entry to the "Your Feedback" section. Append only: never
+rewrite the file, so earlier entries are preserved.
+
+```markdown
+## Improvement: [brief title from the bootcamper's description]
+
+**Date:** YYYY-MM-DD
+**Module:** [module name or "General"]
+**Priority:** [High/Medium/Low]
+
+### What happened
+
+[the bootcamper's description]
+
+### Why it matters
+
+[the bootcamper's stated impact]
+
+### Suggested fix
+
+[the bootcamper's suggestion, or "None provided"]
+
+### Context when reported
+
+- **Time:** [YYYY-MM-DD HH:MM local, or "Unknown"]
+- **Plugin version:** [from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`, or "Unknown"]
+- **Workstation:** [OS name and version, and architecture; e.g. "Linux 6.17.0-35-generic (x86_64)", or "Unknown"]
+- **Model / effort:** [model ID and reasoning-effort level; e.g. "claude-opus-4-8[1m] / high", or "Unknown"]
+- **Context size:** [approximate tokens and/or % of context window in use; e.g. "~85k tokens (~42% of window)", or "Unknown"]
+- **Module / step:** [`current_module` / `current_step` from `config/bootcamp_progress.json`, or "Unknown"]
+- **Recent questions:** [the last few 👉 questions asked]
+- **Bootcamper responses:** [their answers to those questions]
+- **Behind the scenes:** [active hook/skill/phase/gate and relevant state]
+- **Observed problem:** [what the bootcamper saw]
+- **Expected behavior:** [what the active hooks/skills/ground-rules imply should happen]
+- **Divergence:** [why expected did not match actual]
+```
+
+## Step 3b: Verify it landed (durability)
+
+Immediately re-read `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md` and confirm
+the `## Improvement:` entry you just appended is present. If it is missing — a lost or
+partial write, or a session/compaction boundary — append it again and re-read to
+confirm. Only continue once the entry is confirmed on disk. This mirrors the recap's
+"verify it landed" step (`module-completion.md` Step 2c) so submitted feedback is
+never silently lost (INV-015).
+
+## Step 4: Confirm and return
+
+- Only after Step 3b confirms the entry is on disk, present the pinned exit banner **verbatim**, marking the return from feedback to the bootcamp:
+
+  ```text
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅  FEEDBACK SAVED — BACK TO THE BOOTCAMP  ✅
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ```
+
+  Then, in one line: "Saved to `docs/feedback/SENZING_BOOTCAMP_PLUGIN_FEEDBACK.md`. You can add more anytime by saying \"bootcamp feedback\"."
+- Do NOT submit feedback to the Senzing MCP server or anywhere external unless the bootcamper explicitly asks.
+- The exit banner and confirmation are statements, not questions. Immediately after them, return the bootcamper to exactly where they left off by **re-presenting the exact pending 👉 bootcamp question** they were on, verbatim (INV-006 ask-once), so that exactly one 👉 ends the turn (INV-005). Do not make them re-navigate, and do not merge the feedback questions with the resumed bootcamp question into one turn.
