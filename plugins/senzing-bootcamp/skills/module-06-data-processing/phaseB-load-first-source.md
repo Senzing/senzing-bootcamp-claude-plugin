@@ -61,12 +61,22 @@ hardcoded figure:
 actual loaded count in `config/data_sources.yaml`. On failure, set `load_status` to `failed` and
 add an `issues` entry describing the error. Update `updated_at` either way.
 
-**⚠️ SQLite performance note:** on SQLite with single-threaded loading, entity resolution gets
-progressively slower as the database grows. For the bootcamp learning experience, recommend
-loading ≤1,000 records initially, enough to see meaningful entity resolution without long
-waits. If the bootcamper has more data, suggest: "Let's start with the first 1,000 records so we
-can see results quickly. Once we validate the results here, we can load the full dataset, or
-switch to PostgreSQL for better performance with larger volumes (a production follow-up; see the graduation migration checklist)."
+**⚠️ SQLite performance note — only when the volume question is still open.** On SQLite with
+single-threaded loading, entity resolution gets progressively slower as the database grows.
+
+⛔ **Check first whether this was already decided, and say nothing if it was.** Read the
+`sqlite_volume_prompt` marker in `config/bootcamp_preferences.yaml` (Phase A's pre-load check) and
+the Module 4 Step 8b load decision. If either records a choice for this same load — `proceed`,
+`sample`, or a database switch — **honor it silently and load what it says**. Two gates already put
+this to the bootcamper; re-opening it here would be a third ask on a settled question (INV-006) and
+would push a dataset smaller than the one they chose, which is exactly what leaves Modules 6 and 7
+under-demonstrating cross-source resolution (INV-150).
+
+Only when **no** decision is recorded and the database is SQLite may you suggest starting smaller:
+"Let's start with the first 1,000 records so we can see results quickly. Once we validate the
+results here, we can load the full dataset, or switch to PostgreSQL for better performance with
+larger volumes (a production follow-up; see the graduation migration checklist)." Record the
+resulting choice in `sqlite_volume_prompt` so the question stays asked once.
 
 **Checkpoint:** write step 7.
 
@@ -91,9 +101,35 @@ all pending redos until the queue is empty. If the generated redo scaffold uses 
 `ExampleEnvironment`, or any path outside the working directory, override the database path to
 `database/G2C.db`.
 
+⛔ **The bootcamp needs a batch drain that terminates. Check the returned snippet before running
+it.** The MCP redo templates target *streaming ingest*, where never stopping is the point: the
+observed `sdk_guide(topic='redo')` answer prints "pausing for 30 seconds" on an empty queue and
+loops forever. Run that unmodified after a batch load and the session simply hangs — no error, no
+output, indistinguishable from slow work, which is the worst shape a failure can take here.
+
+If the snippet loops on an empty queue, adapt it: keep its structure and concurrency, and replace
+the sleep-and-continue with a break. The shape the batch step needs, stated language-agnostically
+(INV-002):
+
+1. Fetch the next redo record.
+2. If none was returned, the queue is empty — exit the loop.
+3. Otherwise process it, and repeat.
+
+**The fetch's return value is the loop sentinel.** ⛔ Do **not** poll a redo-*count* method as the
+loop condition: it is a full table scan per call, so the drain becomes O(n²) — and because
+processing a redo record generates more redo records, the loop runs longer than the initial count
+suggests (a backlog of 384 took 400 processed calls in the reported session). Confirm the method
+names for the chosen binding from MCP (INV-080/INV-132), and confirm the anti-pattern itself via
+`search_docs(query="redo", category="anti_patterns")` rather than trusting this note.
+
+Report the terminal condition: how many redo records were processed, and that the queue reached
+empty. A drain that finishes silently cannot be told from one still running.
+
 Include a code comment explaining that in production, redos are typically handled by an
 always-running redo processor that wakes, checks for pending redos, processes them, and sleeps
-when the queue is empty.
+when the queue is empty — that is the **streaming** pattern, and it is deliberately *not* what this
+batch step runs. Naming the difference is what stops the non-terminating template looking like the
+correct answer.
 
 Tell the bootcamper: "Processing the redo queue now. This refines entity resolution, without
 it, some matches would be incomplete."
