@@ -551,9 +551,11 @@ def _render_table_fpdf2(pdf, epw: float, block: Block) -> None:
                 1,
             ) * line_h
             if drawn < row_h:
-                pdf.rect(x, y0 + drawn, width, row_h - drawn)
-                if is_header:
-                    pdf.rect(x, y0 + drawn, width, row_h - drawn, style="FD")
+                # One call, styled by row type — the recap generator's mirror of this
+                # function (INV-142) does exactly this. Stroking first and then
+                # re-drawing headers with "FD" painted the same rectangle twice.
+                pdf.rect(x, y0 + drawn, width, row_h - drawn,
+                         style="FD" if is_header else "D")
             x += width
         pdf.set_xy(x0, y0 + row_h)
 

@@ -78,6 +78,13 @@ from urllib.parse import urlparse, urlencode
 # Ids are the app's DOM ids (`tab-<id>`, `navbtn-<id>`) and are contract, not an
 # implementation detail, so a server written in any language (INV-090) is capturable.
 # The slug is what makes a caption hard to get wrong.
+#
+# ⛔ `network` and `merges` are RESERVED, not tabs to capture from a current app — a
+# current server MUST NOT serve them, and DEFAULT_TABS excludes them. They stay here
+# so this helper still names them correctly when pointed at a snapshot saved by an
+# earlier eight-tab run, and so nothing reuses those ids for a different tab. Deleting
+# them as "dead" silently re-slugs old snapshots to `<id>-<id>.png` (see _out_path's
+# fallback) and breaks graduation's caption mapping.
 TABS = {
     "graph": ("entity-graph", "Entity Graph"),
     "network": ("relationship-network", "Relationship Network"),

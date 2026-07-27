@@ -67,7 +67,8 @@ not at all, or the pinned wording goes stale the moment the dataset changes.
 10,000,000). Each boundary value belongs to exactly one tier. **500 itself is `demo`**, and that is
 deliberate: `sdk_guide` returns the single-threaded demo template at or below 500 (see "The cutover
 is 500 records" below), so classifying exactly 500 as `small` would route the bootcamper to the
-threaded-pattern instructions and then hand them a loader the tool itself labels "demo-only". If the reply is a bare option number (1–4),
+threaded-pattern instructions and then hand them a loader the tool itself labels "demo-only".
+If the reply is a bare option number (1–4),
 select that tier directly. If it is free text, parse the number and classify. If it is
 unparseable, ask ONE clarifying follow-up presenting the four numbered tiers, then classify; if
 still unparseable, default to `demo` and tell the bootcamper demo/evaluation was selected as
