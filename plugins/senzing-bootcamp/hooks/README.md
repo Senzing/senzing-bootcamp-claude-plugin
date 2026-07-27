@@ -119,9 +119,12 @@ administrative writes rather than trying to hide them:
 
 - Progress/preference writes are **batched to step and module boundaries**, not made on
   every sub-step (`../skills/bootcamp-onboarding/ground-rules.md` → "Progress and state").
-- The onboarding preface collects all preface choices and persists them in **one**
-  consolidated write at the end, instead of one write per gate
-  (`../skills/bootcamp-onboarding/onboarding-flow.md`).
+- The **Bootcamp preparation** module collects every setup choice (path, module selection,
+  verbosity, programming language, detected platform/name, git status) and
+  persists them in **one** consolidated write at the end, instead of one write per gate
+  (there is no `model_guidance` key — that preference was retired by INV-137)
+  (`../skills/bootcamp-preparation/SKILL.md` → Step 6). The onboarding preface itself writes
+  **no** preferences at all (`../skills/bootcamp-onboarding/onboarding-flow.md` → step 4).
 - Module completion applies its progress update as a **single** batched write
   (`../skills/bootcamp-onboarding/module-completion.md` → Step 1).
 - Config files are kept small, and minimal edits are preferred over full-file rewrites.
