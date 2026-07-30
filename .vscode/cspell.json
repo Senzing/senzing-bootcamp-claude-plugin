@@ -77,6 +77,7 @@
     "mclose",
     "mdockter",
     "mhead",
+    "mojibake",
     "mousemove",
     "mouseout",
     "mtitle",
