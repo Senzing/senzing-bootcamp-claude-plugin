@@ -74,6 +74,7 @@ try:
         _safe,
         _wrap,
         _write_pdf,
+        dropped_character_warning,
     )
 except ImportError as exc:  # pragma: no cover - a broken install, not a data case
     sys.stderr.write(
@@ -81,6 +82,29 @@ except ImportError as exc:  # pragma: no cover - a broken install, not a data ca
         f"(expected next to this script): {exc}\n"
     )
     raise SystemExit(2)
+
+# Inlined fallback palette, in ONE named place so it is both testable and unduplicated.
+# It must stay equal to the values `brand_tokens` derives (INV-107's property, which names
+# only `senzing_viz_server.py` and `generate_recap_pdf.py`; this generator has the same
+# fallback-drift surface and `tests/test_brand_sync.py` now asserts it here too). It was
+# previously written out twice, once per `except` branch — two copies of the same literals
+# is the drift surface, not a safeguard.
+_FALLBACK_RGB = {
+    "EMBER": (245, 120, 38),
+    "DARK_INK": (24, 22, 15),
+    "BODY_INK": (74, 70, 64),
+    "WARM_LINE": (229, 223, 211),
+}
+
+
+def _use_fallback_palette():
+    return (
+        _FALLBACK_RGB["EMBER"],
+        _FALLBACK_RGB["DARK_INK"],
+        _FALLBACK_RGB["BODY_INK"],
+        _FALLBACK_RGB["WARM_LINE"],
+    )
+
 
 try:
     import brand_tokens  # type: ignore
@@ -90,26 +114,20 @@ try:
     BODY_INK = brand_tokens.hex_to_rgb(brand_tokens.BODY_INK)
     WARM_LINE = brand_tokens.hex_to_rgb(brand_tokens.WARM_LINE)
 except ModuleNotFoundError:  # pragma: no cover - falls back to inlined brand values
-    # INV-111: a degraded path is never inferred from silence. The inlined values are
-    # kept equal to the tokens (tests/test_brand_sync.py asserts it), so nothing
-    # renders wrong — but say which case occurred, because a project-local copy of
-    # this script without brand_tokens.py beside it is easy to create by accident.
+    # INV-111: a degraded path is never inferred from silence. The two branches stay
+    # distinct because they are different failures — say which occurred, since a
+    # project-local copy of this script without brand_tokens.py beside it is easy to
+    # create by accident, and "present but unusable" points somewhere else entirely.
     sys.stderr.write(
         f"brand_tokens.py not importable from {Path(__file__).resolve().parent} "
         "(copy it next to this script); using the inlined brand palette.\n"
     )
-    EMBER = (245, 120, 38)
-    DARK_INK = (24, 22, 15)
-    BODY_INK = (74, 70, 64)
-    WARM_LINE = (229, 223, 211)
+    EMBER, DARK_INK, BODY_INK, WARM_LINE = _use_fallback_palette()
 except Exception as exc:  # pragma: no cover - present but unusable
     sys.stderr.write(
         f"brand_tokens.py present but unusable ({exc}); using the inlined brand palette.\n"
     )
-    EMBER = (245, 120, 38)
-    DARK_INK = (24, 22, 15)
-    BODY_INK = (74, 70, 64)
-    WARM_LINE = (229, 223, 211)
+    EMBER, DARK_INK, BODY_INK, WARM_LINE = _use_fallback_palette()
 
 # Header-row fill for rendered tables. Derived from the warm line color so the
 # grid stays inside the brand palette rather than introducing a new tone.
@@ -215,6 +233,15 @@ def _normalize(text: str) -> str:
     text = re.sub(r"[*_`]", "", text)
     text = re.sub(r"[^a-z0-9 ]+", " ", text.lower())
     return re.sub(r"\s+", " ", text).strip()
+
+
+# Specific long-form "**Label:** paragraph" callouts that always break to their own
+# line (label, then a blank-line gap, then an indented body) rather than continuing
+# inline after the label. Deliberately an allowlist, not every `label` block: a short
+# label like "**Cross-source overlap:** ..." reads fine inline with its wrapped
+# continuation, and forcing every label onto its own line would put a blank line
+# mid-sentence for those (see TestParagraphsAreSeparated in tests/test_discoveries_pdf.py).
+_NEW_LINE_LABELS = ("near miss the one that teaches more", "measurement")
 
 
 def parse_discoveries(text: str) -> Discoveries:
@@ -623,10 +650,22 @@ def _render_block_fpdf2(pdf, epw: float, block: Block) -> None:
     if prefix:
         pdf.set_font("Helvetica", "", 10.5)
         pdf.cell(6, 5.5, prefix)
+    # A long-form "**Label:** paragraph" callout named in _NEW_LINE_LABELS always
+    # breaks to its own line: the label, a blank-line gap, then the body indented to
+    # match bullet text (6 mm list indent + the 6 mm bullet cell = 12 mm) -- never
+    # hanging-indented under wherever the label happened to end. Short labels (not in
+    # the allowlist) keep the existing inline-with-wrap behavior below.
+    force_new_line = block.kind == "label" and _normalize(block.label) in _NEW_LINE_LABELS
     if block.label:
         pdf.set_font("Helvetica", "B", 10.5)
-        label = _safe(block.label + ": ")
-        pdf.cell(pdf.get_string_width(label) + 1, 5.5, label)
+        if force_new_line:
+            pdf.multi_cell(epw - indent, 5.5, _safe(block.label + ":"))
+            pdf.ln(4.8)
+            indent += 12.0
+            pdf.set_x(pdf.l_margin + indent)
+        else:
+            label = _safe(block.label + ": ")
+            pdf.cell(pdf.get_string_width(label) + 1, 5.5, label)
     pdf.set_font("Helvetica", "", 10.5)
     remaining = epw - (pdf.get_x() - pdf.l_margin)
     # A long bold label leaves a narrow column, and every wrapped line then stacks in
@@ -634,7 +673,7 @@ def _render_block_fpdf2(pdf, epw: float, block: Block) -> None:
     # low to catch that: ~60 mm of a 190 mm line clears it comfortably and still reads
     # as a ribbon. Break once the label has eaten half the width, continuing at a
     # modest hanging indent — short labels still render inline, which reads well.
-    if remaining < max(20.0, epw * 0.5):
+    if not force_new_line and remaining < max(20.0, epw * 0.5):
         indent = min(indent + 6.0, epw - 20.0)
         remaining = epw - indent
         pdf.ln(5.5)
@@ -807,6 +846,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     output = Path(args.output)
     for renderer, name in ((render_with_fpdf2, "fpdf2"), (render_with_stdlib, "stdlib")):
         if renderer(doc, output):
+            # Characters the built-in fonts could not render were dropped from the page.
+            # Reported once, after the renderer that succeeded has been through the whole
+            # document, and BEFORE the success line so it cannot be mistaken for noise
+            # following a clean result. `content retained` cannot catch this: it is
+            # measured over parsed source characters, before `_safe` runs at render time,
+            # which is why a Cyrillic organization name vanished at "retained: 96%".
+            dropped = dropped_character_warning()
+            if dropped:
+                sys.stderr.write(dropped)
             sys.stdout.write(
                 f"PDF generated: {output} (renderer: {name}, "
                 f"content retained: {audit.retention:.0%})\n"
