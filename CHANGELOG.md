@@ -6,6 +6,139 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [markdownlint](https://dlaa.me/markdownlint/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-08-16
+
+### Added in 0.5.1
+
+- A `UserPromptSubmit` hook, `checkpoint-tick.py`, creates
+  `docs/progress/recap_checkpoint.md` within a turn of the bootcamp starting and
+  reminds the guide once to keep it current — a bootcamp becomes active *after*
+  `SessionStart` has already run, so nothing earlier can guarantee the file
+  exists, and a full ten-module bootcamp ran without one
+- `capture_screenshots.py --single` captures a page that has no tabs as one
+  whole-document image; a single-page deliverable used to request six tabs that
+  do not exist and write nothing
+- Capture writes a `<name>-tabs.json` manifest beside the PNGs, and the recap's
+  `--check` reads it for an **external** denominator — `embedded N of M images`
+  takes both numbers from the recap being measured, so it cannot see a tab that
+  was captured and then never referenced. With no manifest the check reports
+  itself skipped rather than passed
+- Capture skips a tab the app suppresses because its data does not exist, rather
+  than writing a near-empty pane under a confident slug and counting it as
+  covered
+- `generate_document_pdf.py` renders any bootcamp Markdown in the house style,
+  and `generate_discoveries_pdf.py` gains `--subtitle`, `--require-sections` and
+  `--no-section-check` to support it
+- Graduation renders the business-problem and discoveries documents as styled
+  PDF keepsakes, verifying each rather than trusting the `PDF generated:` line
+- Module 2 offers an SDK update when a newer release exists, with the mechanism
+  each platform family actually uses — apt, yum/dnf, Homebrew cask, Scoop, and
+  the Docker image tag — and states that Senzing documents no 4.x → 4.y update
+  procedure rather than implying one is unnecessary
+- The container lifecycle hooks handle podman and Apple's `container` CLI
+  alongside Docker, dispatching on the runtime recorded with each container;
+  Docker Desktop cannot be installed non-interactively, so a macOS Apple Silicon
+  bootcamp may legitimately run under a different runtime
+- Feedback is triaged as `plugin`, `mcp-server`, `both`, `host` or `unclear`,
+  and a `host` finding is recorded locally but never forwarded
+- A silent in-run feedback append for a documented behavior the engine's own
+  output contradicts, filed when it happens rather than recalled at graduation
+- The source-color encoding widens past the first palette cycle along stroke
+  color, stroke width, then fill lightness, and warns instead of colliding
+  silently beyond its stated capacity
+- `senzing_viz_server.py` validates the engine settings it resolved and names
+  the missing `PIPELINE` keys, instead of proceeding into an engine abort
+- Module 5 documents `embedded_master` — a second entity hiding in a column —
+  how to declare it, and going `back` as the sanctioned fix when it was missed
+- Module 1 opens with a data-privacy reminder, and builds its use-case gallery
+  from sector vocabulary rather than the category label, which returns
+  confidently wrong content for two homonym categories
+
+### Changed in 0.5.1
+
+- Recap bullet lists are spaced by default, and where the gap falls is decided
+  **structurally** by indentation rather than by a list of subsection names: a
+  response stays with its question, one Q/R pair is separated from the next, and
+  "Files produced" — the recap's own index, 5-12 glossed paths — is no longer
+  the one list rendered as an undifferentiated block
+- The write gate blocks any resolved target outside the project. System temp and
+  Downloads no longer decide *whether* to block, only which message is shown
+- A bootcamp is "active" only when the progress file records a `current_module`.
+  The preface writes that file empty, so its mere existence had `SessionStart`
+  announcing a bootcamp in progress on a project with no module to resume
+- `/start-bootcamp` decides resume-versus-start from what the progress file
+  contains, and treats a file recording no module as a normal fresh start —
+  silently, not as a corruption to report
+- The model/effort nudge names only the dial that differs, in the answer hint as
+  well as the question; reads the dial before instructing a value the bootcamper
+  has already set; and treats an effort above every row in the table (`xhigh`,
+  `max`) as satisfied, since the step-down clause would otherwise fire at every
+  remaining module and answering it could not make it stop
+- "Graduation" is named **Bootcamp graduation** throughout, and
+  `bootcamp-preparation` gains its own model-selection row so every stage the
+  bootcamp can run has exactly one
+- Module 0's quiz is offered as a knowledge check: the benefit, never the
+  assessment
+- Example query chips are verified concurrently rather than one at a time, so up
+  to ten live engine round-trips no longer sit in front of the app's first paint
+- The Truth Set server is stopped by the process id captured at launch, never by
+  matching its command line
+- The feedback trigger recognizes "I have some feedback about module 5" and
+  fault language that names the bootcamp, plugin, module or tutorial — and
+  deliberately still ignores bare "this is broken", which in Modules 5-7 almost
+  always means the bootcamper's own code
+- README states the plan the bootcamp needs (Claude Max 5x, or several Pro
+  windows) and the data that suits it
+- Module 3 separates the seven installation checks from results validation, and
+  results validation gains an `expectation_mismatch` outcome — the engine
+  working and the prediction being wrong is not a failed install
+- Modules 6 and 7 reconcile every per-source record count against that source's
+  own input before presenting it, and write the discrepancy instead of the count
+  when the two disagree
+- A `brand_tokens` import failure says which failure occurred — absent, or
+  present but unusable — rather than dropping to the fallback palette in silence
+
+### Fixed in 0.5.1
+
+- Recognize a recap image written as a list item (`- ![alt](path)`), which
+  `module-completion.md` asks for: a recap of 8 captured screenshots embedded 0
+  at exit 0, with `--check` reporting "captured 8, referenced 0" — reading as
+  though the guide had forgotten to embed them
+- Stop the stdlib PDF writers substituting `?` for 24 of the 33 characters the
+  sanitizer maps (`≥ ≤ ≈ ≠ € ™ ∞ ← ↔ ⇒ ↑ ↓ ✅ ✓ ⚠`), silently and at exit 0 with
+  a green retention figure. Sanitization moved to the token boundary, the second
+  substitution table is gone, and a character that still cannot be encoded is
+  dropped **and reported**
+- Stop `--single` cropping a tall page: Chrome's `--window-size` and Selenium's
+  `set_window_size` set the outer window, not the viewport, so a full-height
+  request lost the footer while still reporting a full-page capture. The offset
+  is measured and added back, and a capture that fell short says so in its label
+- Block a write outside the project that named neither temp nor Downloads,
+  including one reached by a `..` escape, which the gate had been allowing
+- Prefer a complete `SENZING_ENGINE_CONFIGURATION_JSON` over an incomplete
+  `config/engine_config.json`: a `{"PIPELINE": {}}` stub is valid JSON, so it
+  won on existence and the run then failed with `SENZ7426`, an error whose
+  documented meaning sends the reader to check a `SUPPORTPATH` that is correct
+- Try `NAME_ORG` after a failing `NAME_FULL` search instead of returning at the
+  first error, and report a failure only when every candidate is exhausted
+- Key the graph's stroke on its width rather than its palette cycle, so a node
+  and its legend swatch cannot disagree, and the 25th source is not drawn
+  identically to the 7th
+- Resolve the plugin version inside the feedback hook rather than handing the
+  guide `${CLAUDE_PLUGIN_ROOT}`, which is not substituted in injected text and,
+  on a machine carrying two plugin roots, resolves to the wrong checkout
+- Sanitize certificate and stdlib PDF text before measuring and wrapping it —
+  a transliteration changes the length, which mis-centered lines and overran
+  wraps
+- Emit the recap's inter-item gap after a list item's *last* source line, so an
+  item whose Markdown wraps across two source lines no longer loses its gap
+- Report a fold that did nothing, and say which nothing: a checkpoint that was
+  never created and one the guide never wrote to are different failures, and
+  neither used to be distinguishable from a successful fold
+- Take the discoveries renderer's cover title and subtitle from the document, so
+  another document no longer ships with "What Senzing found in your data" on its
+  stakeholder-facing cover
+
 ## [0.5.0] - 2026-07-30
 
 ### Added in 0.5.0
