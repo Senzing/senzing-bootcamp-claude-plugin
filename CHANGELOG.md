@@ -6,6 +6,225 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [markdownlint](https://dlaa.me/markdownlint/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-08-24
+
+### Added in 0.5.2
+
+- **Bootcamper notes.** A `/bootcamp-note` command, a `notes.md` workflow in
+  `bootcamp-onboarding`, and a `UserPromptSubmit` route for "make a note", "note
+  to self", "jot this down", "remind me" and "add a to-do" append the
+  bootcamper's own ideas, questions, reminders and to-dos to
+  `docs/bootcamp_notes.md`, in their words, with the time, module and pending
+  question captured silently. A note is never routed, never triaged and never
+  sent anywhere; when a message matches both vocabularies ("make a note that the
+  bootcamp is broken") **feedback** wins, because naming the bootcamp as the
+  thing at fault makes it an attributed defect report rather than a private memo
+- Graduation folds those notes into the recap inside a
+  `<!-- BOOTCAMP-NOTES -->` fence and both PDF renderers give them their own
+  page and contents row. The **fence** is the discriminator, not the heading
+  text: the block is lifted out before module parsing, so a note can never be
+  promoted to a module section and cited on the Certificate of Completion. The
+  bootcamp's own elaboration and the machine-composed context are rendered under
+  their own labels, never merged into the bootcamper's words, and the notes are
+  counted toward content retention — otherwise writing enough of them would push
+  a recap under the retention floor and make the generator refuse to render it
+- The structural recap check (`generate_recap_pdf.py --check`) now runs after
+  **every** module's append, not only at graduation. It catches a subsection
+  written as a bold label rather than an `###` heading — indistinguishable in any
+  Markdown viewer, and it drops the whole module from the PDF. One run wrote bold
+  labels at its first module, reproduced them for all nine, and discovered it at
+  graduation as "0 of 9 '##' sections carry any recognized sub-section"
+- `--check` also reports a tab manifest that records fewer captures than there
+  are PNGs beside it, so the coverage check can no longer pass on a denominator
+  that is too small
+- The visualization server mints a per-process nonce, exposes it on
+  `/api/stats`, and confirms **it** is the server answering the port before the
+  URL is handed over; the any-language contract requires the same of a
+  bootcamper-written server. The nonce is compared rather than the record count,
+  because two runs of the same project agree on the count — exactly the case
+  where the stale listener is the bootcamper's own earlier server
+- The graph endpoint caps the nodes it emits and carries `total` and `capped`,
+  ranking candidates by source span, then connectivity, then deterministically,
+  so a re-rendered snapshot cannot disagree with the recap describing it
+- Ground rules gain "Running a file you just wrote, when the run happens
+  somewhere else": on the `docker` path a parse error in a just-written file is
+  retried **once** and confirmed with an in-container compile before it is
+  believed, because a partially-synced read reports an error at a well-formed
+  line and a host/container version story is always available and usually wrong
+- WSL2 is named as the second Linux-environment route for Python on Windows —
+  the server's own second option, which the language gate never offered — and
+  bootcamp preparation states its cost (a system-level install, administrator
+  rights, and a reboot) at the point the choice is still free
+- Module 2 measures the datastore before creating it when the project sits on a
+  mounted host filesystem (WSL2 under `/mnt/`, a Docker bind mount), reporting
+  `check_repository_performance` rather than asserting a rule, and leaves the
+  relocation decision to the bootcamper. Observed on one workstation: 1,112
+  inserts against 326,606, and load throughput of 3 records/second against
+  138-180
+- Module 4 states the completeness target as a band with the arithmetic that
+  reaches it — no single field can move a seven-field source into 70-79% at any
+  absence rate — and verifies the generated data against that band before the
+  module closes, widening the gaps and regenerating rather than recording a score
+  it did not measure
+- Phase B reconciles a loaded count three ways instead of two: equal, an
+  **explained delta** that a named mapping artifact predicts, or unexplained. The
+  explained branch is reachable only with a citation. `embedded_master` — a
+  disposition the bootcamp teaches — necessarily makes the loaded count exceed
+  the input count, so a completely successful load (3,727 loaded from 3,488
+  records, 239 embedded masters, zero errors) had to be filed as `failed` under
+  the two-way rule, and written into the bootcamper's own loading strategy
+- Module 5 labels every cross-source pair in the evaluation report `measured` or
+  `candidate, overlap unmeasured`, and requires a distinct-value overlap count on
+  the named attribute for the former. Two sources at IDENTIFIER 100% were once
+  written up as the highest-confidence pair "both carrying LEI" when one carried
+  2,375 LEI values, the other one, and a single value was shared in the whole
+  dataset — the group scores were correct and the inference was wrong by ~38x
+- Module 5 checks a `disposition: payload` field's emitted key against the
+  registered feature attributes at the plan gate and offers a `_PAYLOAD` rename,
+  rather than letting the bootcamper's explicit "do not match on this" be honored
+  in form and not in effect
+- A sent license request is recorded as an event (`license_key_requested`) with
+  its channel and date, and Phase B's load decision reads it to say the license
+  may already have arrived by email — only when a request is actually
+  outstanding, since `license: evaluation` is also written when the bootcamper
+  declined to send one
+
+### Changed in 0.5.2
+
+- Every MCP citation, negative and positive, was re-verified against server
+  1.33.0 (2026-08-21 and 2026-08-23) and carries that version and date
+- Module 1's scenario invariant asks for **cross-source mapping divergence** —
+  two sources describing the same feature in different shapes — instead of "at
+  least one transformation". A joined name is a direct mapping to `NAME_FULL`
+  under the Entity Specification, so a scenario built to satisfy the old wording
+  satisfied nothing and encoded a plan the specification does not call for
+- The Entity Specification's `NAME_FULL` rule is stated where mapping happens
+  and routed to from Modules 1 and 4: a single name field is a direct mapping,
+  however parseable it looks. One run recorded two such columns as "needing
+  splitting" in two documents a module before anything could check it
+- The reason for sending `mapping_workflow`'s step-1 `profile_summary` as an
+  array is now that the **schema declares** it, not that the prose form fails —
+  server 1.33.0 accepts both shapes, so a caution phrased as an outcome had
+  already expired while one phrased as a contract had not
+- The profile report has two possible filenames — `profile_report.md` for a
+  single-file start, one `profile_report_<stem>.md` per input otherwise — and the
+  relocation rule is now "no profile report is left in the shared workspace,
+  whatever the server named it"
+- Module 7's Poor possible-match band is a **finding** with three outcomes rather
+  than a verdict on the mapping, routed by the server's own concentration test
+  and a comparison against the profiler's uniqueness stats. On the
+  generated-scenario path the plugin creates the gapped contact fields that
+  produce near-misses no remap can fix
+- `SZ_INCLUDE_MATCH_KEY_DETAILS` is passed on why calls again, with a relations
+  flag. The directive that forbade it rested on a measurement whose two arms
+  **both** passed the flag, so its contribution was never varied; following that
+  directive produced a why demonstration with no match-key breakdown, reading as
+  "this SDK doesn't provide that detail"
+- Container teardown uses the two things a Debian slim image is guaranteed to
+  have — the shell's `kill` builtin and the `python3` the SDK install brings
+  in — because `procps` and `lsof` are absent and are deliberately not added to
+  the bootcamper's image. The port's answer, never the kill's exit status, is the
+  exit condition
+- Module 6 Phase C merges the dependency and strategy confirmations into one
+  question on the generated-scenario path, and Phase D self-directs the UAT
+  rather than asking a bootcamper to convene business users for a business case
+  the bootcamp invented — two consecutive rubber stamps in the first case, an
+  unanswerable question in the second
+- `docs/bootcamp_notes.md` is excluded from the `production/` handoff alongside
+  the recap and the feedback directory: it holds the bootcamper's notes about
+  learning the tool, not project content
+- Graduation exempts the generated-scenario marker's robot face from the
+  unrenderable-character tally — the marker is read from the Markdown by four
+  files and by nothing in the PDF — and nothing else
+- Spelling normalized to American English across the scripts and skills, in
+  code comments and prose alike — `color`, `gray`, `centered`, `labeled`,
+  `judgment`
+
+### Fixed in 0.5.2
+
+- **Not one hook had ever run.** `args` is not part of the `type: command` hook
+  schema, so all six hooks launched a bare `python3`, which read the event
+  payload as its program. Each hook is now a single `command` string naming the
+  interpreter and the script with the plugin root **quoted**, so a root
+  containing a space still works — and the README section claiming exec form
+  spawned the interpreter shell-free on every platform is corrected in place
+  rather than quietly deleted
+- A targeted re-capture rewrote the tab manifest from scratch, leaving
+  `captured_count: 1` where six tabs had been captured; coverage then reported
+  full coverage on a 1-of-1 denominator, and would have done so just as
+  cheerfully with five of the six images lost. `write_manifest` merges per tab,
+  keeping every entry for a tab this run did not touch
+- The visualization server bound the wildcard address, which does **not** collide
+  with an existing loopback listener: both binds succeed, two processes listen,
+  and either may answer. Observed on macOS with a three-week-old server from an
+  unrelated project holding `127.0.0.1:8080` — the other outcome shows the
+  bootcamper a stranger's dataset under their own project's title, with the
+  keepsake screenshots capturing it
+- Graph nodes were colored by `data_sources[0]`, so 1,951 cross-source entities
+  rendered in the single-source `GLEIF` color under a legend implying they were
+  GLEIF-only — the bootcamp's headline result invisible in the tab built to show
+  it. A node is colored by its whole source set, fill, stroke and width alike;
+  the palette is allocated in one pass over sources **and** combinations, since
+  two passes each restart at the top and reproduce the collision; and the legend
+  names every combination it draws
+- `. env.sh && python3 server &` backgrounds a **subshell**, so `$!` recorded a
+  pid two away from the server: the kill exited 0, the subshell disappeared, and
+  the port stayed bound by the still-running server. The env is sourced as its
+  own statement, and teardown falls back to the port whenever the pid does not
+  stop the server — a wrong pid presents as presence, which is why it was worse
+  than a missing one
+- The Truth Set tab-set comparison matched `data-tab="…"`, which appears nowhere
+  in the generated app: it found zero identifiers on both sides and reported "tab
+  sets match: True". It matches `id="tab-<name>"` and asserts a non-zero count
+  before comparing
+- Screenshot capture was skipped on an assumption that headless automation was
+  unavailable, losing twelve recap images — permanently in Module 3b, which
+  purges its records at close. The bundled helper is run and its **exit code**
+  decides, since it distinguishes "no headless capability" from "no requested tab
+  exists"; the same script then captured 6 of 6 tabs first try
+- `sdk_guide(topic='configure', data_sources=[…])` selects the registration
+  snippet and substitutes **nothing** — the returned code still carries the
+  sample tuple `("CUSTOMERS", "REFERENCE", "WATCHLIST")`. Shipping it
+  unsubstituted registers three codes the bootcamper does not have and leaves
+  the first load failing `SENZ2207` on the codes they do
+- Data-source registration is re-runnable by construction rather than by
+  catching an error: an identical configuration returns the existing config ID,
+  so idempotency arrives one call after the per-code registration. No route
+  documents a raised error for re-registering a code in any binding, and
+  `search_docs(category='sdk')` indexes community wrappers whose error contracts
+  are not the official binding's
+- Why responses were parsed for `MATCH_KEY`, `ERRULE_CODE` and
+  `MATCH_KEY_DETAILS` — the **entity-side** names, real but carried on
+  `RESOLVED_ENTITY.RECORDS[]`. The rename is the whole family: `WHY_KEY`,
+  `WHY_ERRULE_CODE`, `WHY_KEY_DETAILS`, and all three render blank rather than
+  raising
+- A `find_network` response carries **two** endpoint conventions at once: paths
+  are `START_`/`END_` (directed) and links are `MIN_`/`MAX_` (undirected,
+  normalized low-to-high). Reading path names off a link element printed all 38
+  edges of a corporate hierarchy as `null -> null`, with no error — and an empty
+  edge list is indistinguishable from "this data has no relationships"
+- A `how_entity` step's two sides are the **objects** `VIRTUAL_ENTITY_1` and
+  `VIRTUAL_ENTITY_2`; `INBOUND_VIRTUAL_ENTITY_ID` is a string ID and no
+  `CANDIDATE_VIRTUAL_ENTITY` exists at any depth. The `INBOUND_`/`CANDIDATE_`
+  pairing is real one level deeper, which is why the wrong key survives a
+  name-level lookup and renders every step blank
+- `CONFIRMATIONS[]` has a third state — present and empty — which is a data and
+  rule outcome, not a missing flag: fall back to `FEATURE_SCORES` and say so,
+  rather than adding flags or rendering an empty section
+- Phase A improvised a load menu offering "wait until the evaluation license is
+  applied" with no way to reach it. The load decision, its pinned question and
+  the pointer to the one apply procedure belong to Phase B, once
+- Module 1's license comparison took the **requestable** evaluation license's
+  capacity — described in `submit_feedback`'s own tool description — for the
+  built-in one, so the comparison passed when it should have failed,
+  `license_guidance_deferred` was left unset, and Module 4's gate never fired.
+  The figure comes from `sdk_guide(topic='load', record_count=<above the limit>)`
+- Module 4 sized a generated dataset down from 538 records to 466 to stay under
+  a limit it had not measured, reasoning that an absent `license_record_limit`
+  meant no custom license; the workstation carried an EVAL license with `recordLimit:
+  0`. An absent value means **never measured**, and on no cap the scenario's own
+  needs decide the size
+
 ## [0.5.1] - 2026-08-16
 
 ### Added in 0.5.1

@@ -250,7 +250,7 @@ steering files.)
     therefore permitted here — after the fetch fails, not instead of it — and it costs context,
     because the whole resource then arrives inside the response.
 
-  <!-- MCP-NEGATIVE: the declared schemas of find_examples (query, repo, file_path, list_files, language, max_lines) and generate_scaffold (language, version, workflow) — neither declares an inline parameter, while download_resource's schema does declare it — owner: each tool's declared schema as the server advertises it in the tool manifest is the authority on what that tool accepts, and all three were read there directly rather than inferred from response prose or from a sibling tool (routing negative — the schema is the route, the response's own access_steps prose is not) — server 1.32.9, 2026-08-14 -->
+  <!-- MCP-NEGATIVE: the declared schemas of find_examples (query, repo, file_path, list_files, language, max_lines) and generate_scaffold (language, version, workflow) — neither declares an inline parameter, while download_resource's schema does declare it — owner: each tool's declared schema as the server advertises it in the tool manifest is the authority on what that tool accepts, and all three were read there directly rather than inferred from response prose or from a sibling tool (routing negative — the schema is the route, the response's own access_steps prose is not) — server 1.33.0, 2026-08-21 -->
 
   ⛔ **Read this as a consequence of the schema, never as a ban on the word `inline`.** Stated as
   "never pass `inline`" the rule generalizes wrongly, and a guide that internalized it that way will
@@ -460,17 +460,44 @@ PowerShell form — never a copied `&&`.
 A script the bootcamper is told to `source` runs in **their** interactive shell, so it MUST work in
 the platform's **default** shell — not only in bash. On macOS that shell is **zsh**.
 
-- ⛔ **`${BASH_SOURCE[0]}` is bash-only and expands to *empty* under zsh.** A script that locates
+- ⛔ **`${BASH_SOURCE[0]}` is bash-only and expands to *empty* under zsh (INV-175).** A script that locates
   itself that way resolves its project root to the wrong directory under zsh and carries on, so the
   error surfaces later and elsewhere. Branch on `${ZSH_VERSION}` and use `${(%):-%x}` in the zsh
   branch — the canonical idiom, with the fail-loudly root check that goes with it, is in
   `../module-02-sdk-setup/SKILL.md` under
   [the env script's path resolution](../module-02-sdk-setup/SKILL.md#env-script-path-resolution).
   Do not restate it; link to it.
-- ⛔ **A sourced script must never `exit` or `set -e`.** It shares the bootcamper's shell, so `exit`
+- ⛔ **A sourced script must never `exit` or `set -e` (INV-175).** It shares the bootcamper's shell, so `exit`
   closes their terminal and `set -e` leaks into the rest of their session. Use `return`.
 - **Verify the resolved path before using it, and name it when it is wrong.** Silently exporting a
   variable computed from a wrong root is the failure this prevents.
+
+## Running a file you just wrote, when the run happens somewhere else
+
+On the `docker` install path the bootcamper's project is bind-mounted into the container, so files
+are written **host-side** and executed **container-side** — many times per module, from SDK setup
+through query programs. Propagation across that mount is not instantaneous.
+
+- ⛔ **A syntax or parse error in a file you just wrote is retried ONCE before it is believed.** The
+  container can read a partially-synced file and report an error at a line that is well-formed.
+  Re-run the identical command: **if it succeeds, it was propagation lag, not the code** — say so
+  and move on. If it fails identically, it is a real error. One retry, not a backoff loop.
+- **Confirm it with a compile, not by re-reading the source.** Syntax-check the file *inside* the
+  container in the bootcamper's chosen language (INV-090) — `python3 -m py_compile <file>`,
+  `node --check <file>`, `javac`, `tsc --noEmit`. That separates "the container cannot see the whole
+  file yet" from "the code is wrong" in one cheap step, and re-reading the source on the host cannot:
+  the host's copy was always complete.
+- ⚠️ **A host/container language-version split is normal here and is NOT the first explanation.**
+  The container runs whatever its install steps put there and the host runs its own version, so a
+  version story is always available and more satisfying — and usually wrong. A genuine
+  incompatibility **reproduces on retry**, which is what makes the retry a discriminator rather than
+  a way of dodging the question. Observed 2026-08-18 on macOS Docker Desktop: a well-formed file
+  failed once with `SyntaxError: unterminated string literal`, succeeded on an identical re-run, and
+  an in-container `compile()` confirmed it parsed — after a verification round trip spent on a PEP
+  701 f-string hypothesis that was plausible and false.
+- **Do not add a fixed sleep instead.** A wait asserts nothing about whether the file arrived; the
+  retry plus the compile does. Same reason the visualization teardown polls the port rather than
+  sleeping.
 
 ## Markdown files
 
@@ -538,7 +565,7 @@ which interface. The bootcamp runs in more than one, and the names are not inter
   already consume those tokens; any generator you build — including the chosen-language Truth Set
   visualization server (INV-090) and any one-off HTML page a module offers — MUST too. Key rules: dark backgrounds are
   Obsidian/Deep (never pure black), the accent is the ember family, signal green is reserved for
-  live/resolved states (never decorative), light sections are warm off-white (never cold grey),
+  live/resolved states (never decorative), light sections are warm off-white (never cold gray),
   and rendering stays offline (no web-font/CDN fetch — prefer Roboto with a system fallback,
   INV-081).
 - **The one carve-out: plain functional/dev output stays unbranded.** A progress line, a log file, a
@@ -665,6 +692,21 @@ the 👉 protocol above).
   visually distinct from the bootcamp. Then return them to exactly where they left off. Feedback
   is saved locally only, never submitted externally unless they explicitly ask. (The plugin's
   `UserPromptSubmit` hook surfaces this automatically during a bootcamp.)
+- **Make a note:** whenever the bootcamper says "make a note", "note to self", "jot this down",
+  "remind me", "don't let me forget", "add a to-do", "for my notes", or invokes
+  `/bootcamp-note`, run the note workflow in `notes.md` and append the entry to
+  `docs/bootcamp_notes.md`. The workflow opens with a pinned 📌 **BOOTCAMP NOTE** entry banner
+  and closes with a pinned 📌 **NOTE SAVED — BACK TO THE BOOTCAMP** exit banner (a statement)
+  before the pending 👉 question resumes (INV-254, INV-255). Notes are folded into the recap at
+  graduation and appear in `docs/bootcamp_recap.pdf`. (The plugin's `UserPromptSubmit` hook
+  surfaces this automatically during a bootcamp.)
+  - ⛔ **A note is the bootcamper's own thought, not a report about the plugin.** It is never
+    routed, never triaged, and never sent anywhere — there is no upstream offer, and
+    `submit_feedback` is unreachable from it. When a message is *both* ("make a note that the
+    bootcamp is broken"), it is **feedback**: naming the bootcamp as the thing at fault makes it
+    an attributed defect report, and routing it to notes would bury it in a private keepsake.
+  - ⛔ **Do not ask what they want to note when they already said it.** "Remind me to check the
+    truth-set counts" *is* the note (INV-006).
 - **Change verbosity:** whenever they ask for more or less detail, update the `verbosity` key in
   `config/bootcamp_preferences.yaml`, confirm the new setting in one sentence, and continue.
 - **Repeat the question:** if they ask to hear the current question again ("repeat that", "what
