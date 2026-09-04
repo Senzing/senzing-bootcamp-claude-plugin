@@ -208,6 +208,7 @@
     "substeps",
     "SUPPORTPATH",
     "surrogateescape",
+    "svenstaro",
     "systeminfo",
     "szcore",
     "testdata",
@@ -256,6 +257,7 @@
     "Xlint",
     "XLITERATOR",
     "YREST",
+    "zizmor",
     "Владимир"
   ],
   "ignorePaths": [
