@@ -6,6 +6,291 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [markdownlint](https://dlaa.me/markdownlint/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-09-04
+
+### Added in 0.5.3
+
+- **Bootcamp packaging.** A `/package-bootcamp` command and a `packaging.md`
+  workflow in `bootcamp-onboarding` gather the bootcamp into **one zip under
+  `backups/packages/`** that can be archived, moved to another machine, or handed
+  to a colleague. Two profiles: `share` carries the results — recap PDF, keepsake
+  documents, visualizations and `production/`, with no database, no source data
+  and no credentials — and `transfer` adds the revisit bundle, config and
+  mappings so the bootcamp can be resumed elsewhere. Available at any point, not
+  only after graduation
+- The dry run comes **first**, so the one 👉 question quotes a measured size
+  rather than an estimate, and an invocation that already names a profile still
+  runs it and still asks: the size and the exclusions are what the bootcamper is
+  consenting to, and an argument is not consent for what leaves in the archive.
+  ⛔ The plugin writes the archive and stops — it never uploads, emails or
+  attaches it (INV-135), the same rule the feedback flow follows
+- The archive extracts into **one top-level directory**, carries an
+  `OPEN_ME_FIRST.md` naming the business problem and what was left out **and
+  why**, and a `PACKAGE_MANIFEST.json` recording profile, plugin version,
+  `modules_completed`, every included path with SHA-256 and size, and every path
+  skipped — a recipient must be able to tell what is **missing** without guessing
+- Every member is content-scanned regardless of extension, a member that cannot
+  be read is excluded and named, symlinks are resolved and anything landing
+  outside the project root is skipped, and `testzip()` re-opens the finished
+  archive and writes a `.sha256` sidecar **before** the success line prints —
+  never tell a bootcamper an archive exists without that, since they may not
+  discover otherwise until they are on the machine that no longer has the
+  original
+- `scripts/secret_patterns.py` is the one definition of what counts as a secret
+  in a file the plugin handles (INV-109): a PEM private key, an AWS access-key ID
+  and a Senzing license payload. The write gate blocks a *write* that matches;
+  the packager excludes a *member* that matches, so a pattern added for one is
+  available to the other. The gate keeps its own inline copy on purpose — an
+  `ImportError` in a `PreToolUse` control does not degrade to "no secret scan",
+  it degrades to no writes at all — and a test pins the two equal
+- `graduation/database-backup.md` is the single implementation of "back up the
+  resolved repository", cited by graduation Step 6a and by the `transfer`
+  profile. The indeterminate-`database_type` branch is subtle enough that a
+  second copy means either no backup or `pg_dump` aimed at a SQLite file
+- The visualization server builds from the **export stream** when `--records` is
+  omitted: one pass over every resolved entity instead of one
+  `get_entity_by_record_id` per record. Module 7 now requires it for a
+  bootcamper's own datastore, because the per-record build costs a round trip per
+  record — 19,584 of them for one page, against ~15 seconds for the same model —
+  and is also *incomplete* there, since an embedded-master record the mapper
+  emitted into no input file is invisible to it. An export row carries the shape
+  a `get_entity` response does, so both paths share one absorb step
+- The graph exposes a **settled signal** — `data-graph-settled` on the document
+  element — and a capture-oriented render behind `?capture=1`, so a screenshot
+  waits on the layout's own definition of finished instead of a time budget. A
+  DOM attribute rather than a JS global, because the simulation is a top-level
+  `let` that never reaches `window` and nothing outside the script could observe
+  it. The attribute is *removed* rather than set to `"0"`, keeping "not settled"
+  and "no animated view here" the same observable state
+- The capture manifest records `settled` per tab, with `unsettled` and `unknown`
+  kept distinct: reporting a backend that cannot read the DOM as an unsettled
+  layout blames the artifact for the instrument
+- `capture_screenshots.py` refuses to capture a live server that does not
+  implement `?tab=` deep-linking, before any image is written, and deletes
+  byte-identical captures as defense in depth behind it. Two tabs cannot render
+  the same image; identity means activation did not take, so at most one file
+  shows the tab it is named for and nothing on that side can say which
+- Graduation's tab-coverage check gained the denominator that does not come from
+  the manifests (INV-271): `--check` derives the **expected** visualizations from
+  `modules_completed` in `config/bootcamp_progress.json` and names any with no
+  manifest, withholding the coverage figure entirely rather than reporting a
+  percentage beside an unmeasured visualization
+- The graph endpoint carries an `encoding_check` that counts distinct sorted
+  source-set keys for comparison against the legend's color keys (INV-259), and
+  reports `not_exercised` — never `ok` — below two distinct keys, which is
+  precisely why the single-source Truth Set could not catch the defect it is for
+- Module 4's License Key gate **re-measures** the license (Step 8a.1) and treats
+  that reading as authoritative; SDK setup's Step 5a reading is marked
+  provisional via `license_record_limit_measured_at`, because `get_license()`
+  resolves what is installed at the time it is called (INV-295)
+- The business problem document quotes the bootcamper's **own words** in
+  `> "…"` lines beside the guide's rendering, for the five sections built from
+  interview prose — and omits the line entirely where the answer was a selection
+  from a fixed vocabulary, since an invented "verbatim" line is worse than none
+  because it looks like evidence (INV-275)
+- Feedback records `submission blocked: <reason>` for a *consented* send a
+  no-send session was forbidden to make — never `offered, declined`, which
+  states that the bootcamper refused when they agreed, and is the one value that
+  reads as "considered and rejected" to anyone deciding later whether the finding
+  is still owed upstream (INV-281)
+
+### Changed in 0.5.3
+
+- When proceeding requires **loading** anything — invoking a skill, reading a
+  file, running a script — the acknowledgment goes out first, in its own visible
+  line, before the first tool call (INV-272). Those calls produce no
+  bootcamper-visible output, so an acknowledgment composed afterwards leaves an
+  answer looking unregistered for several consecutive calls. Recorded 2026-08-25:
+  a bootcamper answered the Module 7 transition question, saw nothing across a
+  skill invocation and two file reads, interrupted and answered again — so the
+  question was effectively asked twice, which INV-006 forbids, without the guide
+  ever re-asking it
+- The sourcing checklist is a floor, not the exhaustive set of claims needing a
+  source (INV-273): an assertion about **Senzing the company** — its licensing,
+  support, pricing, internal process, how its customers or employees do things —
+  is subject to the same discipline as an SDK method name. Anything unsourceable
+  is labeled as an inference at the point it is made or it is not said, and at a
+  gate the bootcamper has already answered the correct action is silence
+- The bootcamper's identifying context is for identification and for fields a
+  tool requires, never a premise for reasoning about what they should choose
+  (INV-274). Employer, affiliation, seniority and entitlement are not inferred
+  from an email domain
+- A declared MCP schema is authoritative for the parameters a tool **accepts**,
+  not for prose describing what it **covers**; for coverage `get_capabilities`
+  governs, and a disagreement is settled by making the call (INV-280). Stated as
+  a property rather than as its example, since the `find_examples` case it was
+  written from was resolved upstream on server 1.36.0
+- Module 0's six `search_docs` queries were each measured against the live index
+  rather than composed (server 1.35.3, docs index 2026-09-01), and two were wrong
+  when checked: a plausible five-stage pipeline query reached none of those
+  stages, and an ambiguous-match query returned three Entity-Centric-Learning
+  chunks and no ambiguous-match material. `search_docs` is BM25, so a
+  plausible-sounding phrase is evidence of nothing — run an entry before changing
+  it
+- Module 1 sizes a generated scenario to about 10,000 records unless the
+  bootcamper asks for more, and states the cost in one line before generating it
+  (INV-277). No wall-clock figure and no records-per-second rate: load time
+  depends on the workstation, the database and the language, none of which that
+  module knows. The ceiling is about how long the bootcamp takes, never about
+  license capacity, which nothing has measured yet
+- CORD is disclosed as **real data** in the turn that binds it in Module 1, not
+  several modules later at Module 4 (INV-293) — a statement, never a gate, since
+  it asks nothing the bootcamper can act on
+- Feedback asks only the questions the triggering message has not already
+  answered (INV-006). The partial message is the normal shape: someone who stops
+  to report a defect usually names the subject, what happened and often a fix,
+  and re-asking those three spends goodwill they are already spending
+- Module 6 reads the tier **and** `database_type` when sizing loader workers —
+  the tier picks the pattern, the engine picks the worker count (INV-296) — and
+  says plainly that proceeding on SQLite keeps the serialized writer count
+- Module 5 prints a per-`RECORD_TYPE` presence breakdown before reporting a
+  quality score, as a precondition rather than another heuristic (INV-174,
+  INV-264), and discloses deliberate gaps on a `provenance: synthesized` source
+  before the gate rather than after it
+- Module 6's validation routes match accuracy on the **per-record** bucket only
+  (INV-264). The per-record and relationship buckets mean opposite things, so a
+  relationship-bucket share is not evidence of poor match accuracy, and pooling
+  them produces a figure about neither
+- Node labels live in their own layer appended after the node group, are
+  truncated to 20 characters with a collision suffix, and the collision force
+  accounts for label extent — but only while labels are actually drawn, so the
+  production-scale layout is not over-separated for text nobody renders
+- The README says the plugin works wherever Claude Code runs and names the web
+  app and IDE extensions, while stating plainly that the walkthrough has verified
+  install steps only for Claude Desktop and the CLI. The command table lists all
+  five commands, including `/bootcamp-note` and `/package-bootcamp`
+
+### Fixed in 0.5.3
+
+- **A stray fence marker deleted finalized modules from the recap.** Both fence
+  handlers located their terminator with the next end marker *anywhere* in the
+  document, so an unterminated start annexed the region up to a later fence's
+  terminator. Measured 2026-09-01 on the shipped script: a three-module recap
+  parsed to two, with `## SDK setup` and its content gone. It was silent three
+  ways — `audit_recap` fired the unfinalized-module warning, which is true and
+  about something else; `--expect-modules` checks presence and never absence; and
+  the retention count stripped the same region, so the deleted module left the
+  **denominator** too and the run reported 94% retention with no fatal. A fence's
+  span now never extends past the next start of its own type, a stray is skipped
+  rather than paired, and `audit_recap` names it by offset
+- A resumed session put five phantom "modules" beside the real ones in the
+  keepsake PDF: `recap_checkpoint.md`'s interior uses `## ` headings, the
+  durability hooks fold it verbatim, and every `## ` in a recap is parsed as a
+  module. The checkpoint fence is lifted before module parsing now, through a
+  `DISCARDED_FENCES` tuple the parse path iterates rather than markers named one
+  at a time, so a third fenced block cannot repeat this by being overlooked. The
+  lift is refused where it would empty a recap that had module headings —
+  phantom sections that `audit_recap` warns about are the lesser loss against
+  deleting real content
+- The same checkpoint block was counted in the retention denominator, where a
+  resumed session's checkpoint is large relative to a partly-written recap:
+  42% retention, fatal, with the lift's own effect measured as content loss and
+  the PDF blocked outright against INV-048
+- **A headless capture ran 5 of the ~300 ticks the layout needs**, at every
+  virtual-time budget from 5s to 300s, because d3's timer is driven by
+  `requestAnimationFrame` and headless virtual time does not advance it. The
+  nodes sat near their initial phyllotaxis positions, which look plausibly spread
+  out — which is why it went unnoticed. The capture render now stops the
+  simulation, ticks it to completion synchronously and places once. Measured
+  2026-09-03 on the 85-entity Truth Set: five captures at 30s and five at 120s
+  produced the same image while five at 300s produced two, so the deadline never
+  selected the layout and lengthening it made reproducibility worse
+- A settled layout is not automatically a visible one: `forceCenter` centers the
+  centroid and bounds nothing, so the finished 85-entity layout spread well
+  outside 1440x900 and presettling alone put most nodes off-canvas — losing more
+  of the graph than the unsettled clump it replaced. The capture now fits the
+  layout to the viewport extent, and drops labels above 40 nodes, since a 10px
+  label at the fit scale is 2–3px at 85 entities. The interactive view is
+  untouched; a real browser advances animation frames normally
+- Node labels were text children of each per-datum node group, so paint order put
+  a later circle over an earlier label. Observed at N=2, the smallest possible
+  graph: "Aurelia B Quorndon" rendered as "relia B Quorndon" with the leading
+  "Au" behind the neighboring circle, byte-identical across an 8s and a 30s
+  budget, so it was the settled state and not a settling artifact
+- `--single` did not request the capture render, three lines above the two
+  per-tab branches that did — a rule applied where the defect was measured rather
+  than everywhere it binds (INV-246). Every capture path goes through one helper
+  now
+- **Tab coverage reported a clean pass on a bootcamp that had captured nothing
+  from its own data.** On a 2026-08-25 run `--check` reported "6 of 6 captured
+  tabs reached the recap" while the entire Module 7 application, built over the
+  bootcamper's own resolved data, had not been captured at all: the check's
+  denominator is the manifests that exist, and a module that captured nothing
+  contributes none. The recap PDF illustrated the bootcamp with six pictures of
+  the demo Truth Set and the bootcamper's cross-source entities and fraud leads
+  appeared only as prose. The sentence was true of the manifests and false of the
+  bootcamp
+- A live server implementing every tab id, section id and nav id but no `?tab=`
+  deep-linking served its **default tab** for every request, and every earlier
+  check passed because the ids it looks for were all present. Measured 2026-08-28
+  against a Java server built to the contract: six files, five distinct images,
+  two byte-identical, exit 0, with the images reaching the recap captioned as tabs
+  they do not show
+- The legend's per-source counts were labeled "Single-source" while the rows were
+  **participation**-shaped throughout. On a two-source run it read
+  `CRM_CUSTOMERS 65` / `WEBSTORE_ACCOUNTS 70` against 121 entities with 14
+  spanning both; the true single-source figures were 51 and 56, and nothing on
+  screen contradicted the misreading because each figure agreed with every other
+  total in the app. Relabeled rather than recomputed — the tooltip filters the
+  source, the click handler keeps a node when any of its sources is on, and the
+  swatch is the per-source color, so changing the counts would put the label in
+  agreement with the heading and out of agreement with all three
+- That row sat inside the cross-source branch and vanished on single-source runs,
+  where the label happens to be correct — hiding the defect from the simple case
+  and showing it only on the runs the module exists to demonstrate
+- The entity-size histogram's y-axis counts entities, which are whole, but
+  `.ticks(n)` labeled a `[0,1]` domain in fifths — "0.4 entities". Small maxima
+  are the normal bootcamp shape, since the built-in evaluation license caps
+  ingestion at 500 DSRs. Integer tick **values** are chosen now; `.tickFormat("d")`
+  alone rounds the labels while leaving the fractional positions and yields
+  duplicates
+- The packager had a file-type allowlist carrying `.md`, `.py` and `.json` and
+  not `.pem`, `.key` or the empty extension, so a `server.pem` and an
+  extensionless `id_rsa` were packaged while the same key in a `.py` was
+  excluded. There is no allowlist now — every member is scanned by content
+- A recap or discoveries document that exists but is not UTF-8 — an editor
+  saving cp1252 is the usual cause — produced a traceback. Both generators refuse
+  with a message the guide can relay and write no PDF, rather than re-reading
+  with `errors="replace"`: the document is the bootcamper's, and silently
+  mangling their text is not the plugin's to do
+- `license_record_limit` could be written from a number the bootcamper *stated*.
+  On 2026-08-25 a stated 100,000 was written against an install whose measured
+  limit was **500**, on a ~94,000-record scenario — and the failure is a
+  *suppressed* warning rather than a wrong number, since a limit above the dataset
+  size suppresses Module 4's volume gate, the single volume-gated prompt in the
+  bootcamp. The field is written only from a measurement now, and a stated
+  entitlement is recorded as `license_stated_limit` in the preferences file, in a
+  different file from the measured value so proximity cannot confuse the two
+  (INV-244, INV-278)
+- A bootcamper said their **possible**-fraud entities should feed the fraud tool;
+  the document rendered it as "Internal fraud tool (**confirmed fraud cases**)" —
+  one adjective, and a different routing rule. The same document still said
+  "Possible-fraud entities routed to the internal fraud tool" four lines earlier,
+  so it contradicted itself and carried nothing that could settle which reading
+  was right. It was confirmed as accurate at Step 15 and propagated: Module 7's
+  requirement 7 came out titled "Confirmed-fraud candidate list", and was approved
+  too — reviewing, again, only the refined artifact
+- Desired Output recorded a single value where Step 6d is a multi-select, so "1
+  and 3" was written as `Master list` alone. That narrowing does not stop at the
+  document: Module 7 derives its query requirements from it (INV-286)
+- The capture helper's two non-zero exits need opposite responses and were being
+  read as one "it failed": exit **1** is an unrecognized tab id, rejected before
+  anything was captured, and taking the skip path there drops **every** screenshot
+  from the recap while all of them were available. Exit **2** is a capability or
+  content limit, and two of its three reasons are not about a missing install —
+  a Windows machine carrying both Edge and Chrome was once told no capability was
+  available, sending the reader to install software they already had
+- The single-page safety net and the deep-linking guard were ordered wrongly:
+  above the net, the guard read `tabs == []` for a page with no tabs and refused a
+  single-page deliverable that was never going to select a tab. Measured
+  2026-08-31: rc 0 with an image before, rc 1 with none after
+- Module 2 carried `${SENZING_ROOT}` to Linux, where the macOS install sets it
+  and nothing on Linux does (INV-283), and reported that a binding loaded without
+  reporting **where it resolved from** — a locally installed package shadowing the
+  SDK produces a working import and the wrong code (INV-269). The path is printed
+  beside the version now, not a package-metadata version, which reports the wrong
+  package
+
 ## [0.5.2] - 2026-08-24
 
 ### Added in 0.5.2
