@@ -1,0 +1,102 @@
+name: make github release assets bootcamp plugin
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+env:
+  PLUGIN_DIR: plugins/senzing-bootcamp
+  PLUGIN_NAME: senzing-bootcamp
+
+permissions: {}
+
+jobs:
+  make-github-release-assets-bootcamp-plugin:
+    name: publish plugin archive
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: verify manifest version matches tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          manifest="${PLUGIN_DIR}/.claude-plugin/plugin.json"
+          if [ ! -f "${manifest}" ]; then
+            echo "::error::Plugin manifest not found at ${manifest}"
+            exit 1
+          fi
+          manifest_version="$(jq -r '.version // empty' "${manifest}")"
+          if [ "${manifest_version}" != "${TAG}" ]; then
+            echo "::error::Version mismatch: tag is '${TAG}' but ${manifest}" \
+              "declares '${manifest_version:-<unset>}'. Bump the manifest and re-tag."
+            exit 1
+          fi
+          echo "Manifest version '${manifest_version}' matches tag."
+
+      - name: stage plugin
+        env:
+          STAGING: ${{ runner.temp }}/staging
+        run: |
+          plugin_root="${STAGING}/${PLUGIN_NAME}"
+          mkdir -p "${STAGING}"
+          cp -R "${PLUGIN_DIR}" "${plugin_root}"
+
+          # Drop build cruft that has no business in a distributed archive.
+          find "${plugin_root}" -type d -name '__pycache__' -prune -exec rm -rf {} +
+          find "${plugin_root}" -type f \( -name '*.py[cod]' -o -name '.DS_Store' \) -delete
+
+          # claude.ai rejects any uploaded plugin carrying a top-level bin/ directory.
+          if [ -d "${plugin_root}/bin" ]; then
+            echo "::error::Plugin contains a top-level bin/ directory," \
+              "which claude.ai rejects. Move executables to scripts/."
+            exit 1
+          fi
+
+          echo "Staged plugin tree:"
+          find "${plugin_root}" -maxdepth 1 -mindepth 1 -printf '  %P\n' | sort
+
+      - name: validate plugin # zizmor: ignore[adhoc-packages]
+        env:
+          STAGING: ${{ runner.temp }}/staging
+        run: |
+          # Validate against the current Claude Code release, so the archive is
+          # checked against the spec the app enforces today. No lockfile to pin
+          # against here, hence the audit suppression.
+          npm install --global @anthropic-ai/claude-code
+          claude plugin validate "${STAGING}/${PLUGIN_NAME}"
+
+      - name: make .plugin archive
+        env:
+          STAGING: ${{ runner.temp }}/staging
+          TAG: ${{ github.ref_name }}
+        run: |
+          asset="${RUNNER_TEMP}/senzing-bootcamp-claude-plugin-${TAG}.plugin"
+          # A .plugin archive is a zip whose single top-level directory is the plugin root.
+          (cd "${STAGING}" && zip --quiet --recurse-paths -X "${asset}" "${PLUGIN_NAME}")
+          unzip -l "${asset}"
+          echo "Built ${asset} ($(du -h "${asset}" | cut -f1))"
+
+      - name: upload versioned package to release assets # zizmor: ignore[superfluous-actions]
+        uses: svenstaro/upload-release-action@cd8e7cbf67456e30da904d9dd06c146632cb868c # 2.9.1
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ runner.temp }}/senzing-bootcamp-claude-plugin-*.plugin
+          file_glob: true
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Notify Slack on failure
+        if: failure() || cancelled()
+        uses: senzing-factory/build-resources/slack-failure-notification@v4
+        with:
+          job-status: ${{ job.status }}
+          slack-channel: ${{ secrets.SLACK_CHANNEL }}
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
