@@ -85,7 +85,7 @@ jobs:
           echo "Built ${asset} ($(du -h "${asset}" | cut -f1))"
 
       - name: upload versioned package to release assets # zizmor: ignore[superfluous-actions]
-        uses: svenstaro/upload-release-action@cd8e7cbf67456e30da904d9dd06c146632cb868c # 2.9.1
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ runner.temp }}/senzing-bootcamp-claude-plugin-*.plugin
