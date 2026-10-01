@@ -33,6 +33,9 @@ recap PDF you can keep and share, and a production starter. See
   It generates SDK code,
   looks up Senzing facts,
   and provides working examples.
+- Python 3, available as `python3` on the `PATH`.
+  The bootcamp's hooks and its graduation recap run on it.
+  On Windows, if only `python` or `py` is installed, add a `python3` entry to the `PATH`.
 - Minimum of a [Claude Max 5x] plan.
   - *Note:* Multiple 5-hour windows of a [Claude Pro] plan will work, but you will not be able to complete the bootcamp in one session.
 - *Recommended, but not mandatory:*
