@@ -72,8 +72,10 @@ and starting the Bootcamp.
     1. In the *Code* pane, click "**New**".
 1. In Claude Desktop, near the bottom, choose the "Working directory" (it might say "Select folder...")
     1. Create and use a new folder for the Senzing Bootcamp.
-1. In Claude Desktop, on the bottom, click the "Add" icon (**+**) > **Add Plugins...** (Or it may be just "Plugins").
-    1. In the *Directory* pane, near "Filter by" and "Sort by", click the "Add Marketplace" icon (**+**).
+1. In Claude Desktop, on the bottom, click the "Add" icon (**+**) > **Plugins** > **Manage plugins**.
+    > **Note:** These instructions may change depending on version of Claude App.
+    1. Select the "Yours" tab.
+    1. In the upper-right of the *Plugins* pane, click **Add** > **Add Marketplace**.
         1. If the plus sign is missing, see [Troubleshooting: Claude Desktop inoperative](#claude-desktop-inoperative)
     1. In the *Add marketplace* pane, enter "**URL:**"
 
@@ -82,14 +84,11 @@ and starting the Bootcamp.
         ```
 
     1. Click the "**Sync**" button.
-    1. In the *Directory* pane,
-        1. Select "**Code**" tab.
-        1. Select "**Senzing bootcamp**".
-        1. Click on "**Install**".
-        1. Close *Directory* pane.
+    1. To the right of *Senzing bootcamp*, **Add** > "install for project (personal)".
+    1. Close *Plugins* dialog.
 1. In Claude Desktop, on the bottom,
     1. Choose the Mode: "**auto**" for a smooth ride.
-    1. Choose the Model "**Sonnet 5**".
+    1. Choose the Model "**Sonnet 5.5**".
     1. Choose the Effort: "**medium**".
 1. In Claude Desktop, near the bottom, in the agentic chat, enter:
 
@@ -113,6 +112,7 @@ and a `production/` starter project.
 If you are unable to enter and process prompts in Claude Desktop
 or if you are unable to add a Claude Marketplace or Claude plugin,
 the issue may be with an incomplete installation of Claude Desktop.
+
 
 - Claude Desktop requires `git` to be installed.
 
