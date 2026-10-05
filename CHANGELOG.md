@@ -6,6 +6,247 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 [markdownlint](https://dlaa.me/markdownlint/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-05
+
+Version 0.6.0 was never published from this repository, so its changes are
+included here.
+
+### Added in 0.6.1
+
+- **Graduation video.** Graduation offers an optional narrated, captioned
+  2-minute video, `docs/bootcamp_recap.mp4`, rendered by the new
+  `scripts/generate_recap_video.py` from a storyboard the guide writes to
+  `docs/video/storyboard.json`. The renderer validates every scene against one
+  table of scene types (title card, image, counter, mapping, loading, entity
+  merge, certificate, tag line), draws frames with Pillow and streams them into
+  a single ffmpeg process, and synthesizes a ducked music bed with the standard
+  library. It is offline: it opens only local, project-relative files.
+  Narration is never truncated — a scene is lengthened to fit and the overrun
+  reported — and captions are always burned in, so a video with no voice still
+  carries every word (INV-342)
+- The voice is a local Piper neural voice (`en_US-ljspeech-high`) when one is
+  set up, offered once as a project-local install into `data/temp/recap-venv/`
+  and `data/temp/piper-voices/`, and the platform's own speech engine
+  otherwise. ⛔ The video never blocks graduation: a declined install, an
+  invalid storyboard or a failed render skips it with one line and keeps the
+  storyboard for a later render. A video with no voice gets the platform's
+  install hint and a ready-to-run re-render command in the closing
+  announcement, as a statement, never a question (INV-340)
+- The video carries **aggregates only** — counts, source names, field and
+  attribute names, statistics — and only screenshots from an allow-list of three
+  name-free tabs (Match Keys, Feature Scores, Cross-Source). Merge Statistics,
+  Search / Probe and Entity Graph captures are left out because they can show
+  record values, and a bootcamper is encouraged to share the video (INV-340). It
+  is timed to 2:00 by per-module shares rescaled over the modules actually
+  taken, and verified from the file, not the exit code: duration within ±10 s,
+  one frame per scene, and an audio stream whenever one is expected
+- **B-roll per module.** Module completion saves each module's entry to
+  `docs/video/broll.json` — display name, screenshots already on disk, aggregate
+  facts, a one-sentence highlight — while the work is still in context, so
+  graduation reads one manifest instead of reconstructing the bootcamp from
+  memory (INV-341). It never blocks completion, and a bootcamp started on an
+  older version falls back to the recap
+- **Type/name check in Module 5.** Every source's PERSON-typed records are tested
+  for a name whose final whole token is an organization suffix (`LLP`, `LTD`,
+  `INC`, …), reported for every source as candidates, zero included, and put to
+  the bootcamper as retype or keep. `RECORD_TYPE` prevents records of different
+  types from resolving, so a mistyped record can never merge with the same
+  organization in another source: on 2026-09-25, 26 such records in one CORD
+  source held apart 17 of 50 cross-source possible matches, and nothing found it
+  until after the load. A source with candidates is not offered the fast path,
+  and a retype is declared once, with a computed `RECORD_TYPE`, and emitted as
+  `NAME_ORG` (INV-335, INV-336). The suffix list is marked as the plugin's own
+  heuristic, since no MCP route serves one
+- **Returns that complete no module.** At Module 5's quality gate, a source with
+  nothing mechanical left to fix can return to Data collection
+  (`collection_return`) for a better export, or for a regeneration to ≥80% when
+  the data was generated. Module 7's quality verdict can send named sources back
+  through remapping and reloading (`quality_iteration`), deleting the records
+  whose RECORD_IDs left a source before reloading it. Each return runs only the
+  steps it names, writes no recap section, adds nothing to `modules_completed`,
+  and resumes where it was interrupted (INV-284)
+- **How-state audit in Module 6.** Every multi-record entity is checked with
+  `how_entity` for an unsettled final state — `NEED_REEVALUATION` non-zero, or
+  more than one virtual entity — reported as "checked N of M" with four
+  outcomes and recorded in `docs/results_validation.md`. Observed 2026-09-25:
+  entities the export reported as clean came back as two groups no step joined,
+  after the redo queue had drained. Nothing documents the field, so the audit
+  gives it no meaning and offers no fix (INV-334). The visualization's How? view
+  shows the same state as a notice and renders each virtual entity as its own
+  group (INV-330)
+- **Sample and subset records in the registry.** A working sample writes a
+  `sample:` block (INV-326) and a license-capped or SQLite-limited load writes a
+  `load_subset:` block (INV-325), each with a record count measured from the
+  written file. A load is now reconciled in two stages: the loaded count against
+  what the loader was given, then that input against the collected count through
+  the cited chain collected → sample → mapped → subset. A clean load of a sample
+  reconciles as `expected_delta` instead of `failed`, and an uncited gap is shown
+  as unverified, never as a plain number (INV-243, INV-245)
+- Multi-source loads compute a per-source budget table before the run, from the
+  recorded license-cap or SQLite choice and a remaining cap measured through the
+  SDK rather than summed from the registry (INV-324). The license-cap question is
+  asked once for all remaining sources, and every source's limit is written
+  before any load starts (INV-320)
+- With two or more sources, Phase B chooses the first source by Phase C's
+  ordering heuristics, states the choice and the heuristic that decided it, and
+  records it in `docs/loading_strategy.md`. A dependency that choice broke is
+  reported, never repaired by reloading the first source (INV-327)
+- SDK setup records the installed version from `SzProduct.get_version()` as
+  `sdk_version` in `config/bootcamp_progress.json`, and the recap's
+  `**Senzing SDK:**` line reads it from there. The MCP server is remote and
+  cannot know what is installed on this machine (INV-329)
+- An SDK update offer first reads the target version's "Migration & Action
+  Required" release notes and relays what applies — for 4.4.0, no schema change,
+  the license and configuration notes, SQL Server's UTF-8 collation, and the
+  installers discontinued in 4.3.0. The macOS and Windows update commands come
+  from the Homebrew tap and Scoop bucket READMEs that `search_docs` now serves,
+  and both are disclosed as preview releases Senzing does not support
+- Language bindings follow the route the MCP server names for each language:
+  `sz-sdk.jar` into the local Maven repository for Java, the `Senzing.Sdk`
+  package from the SDK install as a local NuGet source for C#, and git or GitHub
+  installs for Rust and TypeScript. ⛔ Never a public registry the route does not
+  name (INV-222)
+- Generated scenarios give each invented entity its own email, phone and
+  identifier numbers unless a share is declared under
+  `quality_intent.shared_features`, and count collisions before anything scores
+  (INV-239). Observed 2026-10-01: `first.last<1-99>@` addresses over 1,197 names
+  gave 53 pairs of different people the same name and email, every pair merged,
+  and the scenario's own ground truth then called each merge false
+- The quality-assessment and mapping-quality pages are captured for the recap as
+  single-page screenshots
+- A GitHub Pages quick-start site, `docs/index.html`, that takes a newcomer from
+  nothing installed to a running bootcamp in Claude Desktop or the Claude Code
+  CLI (#20)
+- Python 3, available as `python3` on the `PATH`, is listed as a requirement in
+  the README and on the Pages site (#19, #21)
+
+### Changed in 0.6.1
+
+- **Model guidance moves to Sonnet 5.5 and Opus 5.5**, with Fable 5.1 as the top
+  model, in the README, the Pages site, the per-stage table and every module
+  nudge; the table was re-verified on 2026-10-01 and its staleness note names the
+  models it superseded. A bootcamper on Fable 5.1 is above the table and is never
+  asked about the model; one on Opus 5.5 entering a Sonnet 5.5 stage is still
+  asked, as a step down. A dial whose value cannot be read is compared by an
+  explicit previous-stage proxy (INV-138)
+- Graduation's model/effort prompt is no longer a second copy of the rule: it
+  follows ground-rules and adds only where its flow resumes (INV-300)
+- The Claude Desktop install steps follow the current UI: **Plugins** >
+  **Manage plugins**, the "Yours" tab, and "install for project (personal)"
+- **The SDK EULA question comes first**, before any package repository, package
+  or binding is installed, on every path. An existing V4.0+ install is not asked
+  again, and declining it for an update keeps the working install (INV-338). The
+  existing-install path still installs the language bindings and writes the env
+  script (INV-339)
+- Windows gets a PowerShell env script, `src\scripts\senzing-env.ps1`,
+  dot-sourced, in place of `senzing-env.bat`. A `.bat` run from PowerShell sets
+  its variables in a child `cmd.exe`, so none reached the session. The script
+  refuses to run unless dot-sourced, reads the configuration as UTF-8, and a
+  blocked execution policy is lifted for one window only; marked unverified on
+  Windows PowerShell 5.1
+- The env script finds the project root by `config/bootcamp_progress.json`, and
+  before Step 8 writes `config/engine_config.json` it skips only the settings
+  export with a notice instead of failing; Step 8 has it re-sourced (INV-175)
+- `database_type` is recorded as soon as the database is chosen, ahead of both
+  branches, with its five readers and their fallbacks named; the step 7
+  checkpoint waits until that branch's setup is finished
+- System verification records eight installation checks, adding
+  `engine_initialization`, with results validation reported separately and never
+  required to pass (INV-229)
+- Both SQLite heads-ups compare the loadable total across every mapped source
+  against one MCP-sourced threshold (INV-331). Module 4 writes a
+  `sqlite_load_time_prompt` marker that Module 6 honors only while its figure
+  still holds. The production tier no longer triggers the prompt — it describes
+  the take-home system, not today's load — and gets a one-line PostgreSQL note
+- A production-volume answer given as an option number is stored as a range,
+  `raw_value: null`, and never passed to `sdk_guide` as `record_count`: picking
+  option 3, medium production, had returned the single-threaded demo loader
+  (INV-328)
+- While sources remain unmapped, Module 5 asks about the next source rather than
+  about loading, and on the last source a proceed answer settles the sandbox
+  decision as `skip`. Phase 3 tests one source and always returns to Phase 2,
+  its shortcut past Data processing is removed, and Module 5 completes only at
+  Phase 2 step 20 (INV-344, INV-076). A progress file at the retired step 26
+  resumes as complete
+- The `detect_environment` decision takes only the two values its schema
+  declares, `skip` and `test_load`
+- The shared-feature collision check asks only about pairs whose sameness cannot
+  be shown, once per source. Parsed against full NAME or ADDRESS for the same
+  subject, or one quantity on a feature-specific feature, is recorded without a
+  question (INV-012, INV-251)
+- Mapping test runs write to `data/mapping/` (`{source}_sample.jsonl`,
+  `{source}_quality.jsonl`); `data/senzing-ready/` holds only step 18's full
+  load-ready output
+- Orchestration around the SDK calls — ordering, retries, per-source isolation,
+  reconciliation — is ordinary code, since no MCP route serves a multi-source
+  orchestrator; the SDK calls still come from the tools
+- `production/` carries `config/data_sources.yaml` as a projection — `name`,
+  `file_path` and `format` per source, with `load_subset:`, `sample:` and the
+  other evaluation fields stripped — so the copied orchestrator finds its
+  registry; `data/subsets/` is excluded (INV-186)
+- Database backup and restore commands name the file with `-f` or an argument,
+  never a `<` or `>` redirection, which Windows PowerShell 5.1 rejects or
+  re-encodes; a Docker dump is written inside the container and copied out
+  (INV-166). Graduation's virtualenv and render commands gain Windows forms, and
+  Windows commands throughout are marked unverified there
+- A license key is written on Windows with `[System.IO.File]::WriteAllBytes` and
+  an absolute path, and a re-measurement that **raises** the limit is announced
+  just as one that lowers it is (INV-295)
+- `download_resource`'s inline reply is reassembled from its chunks and checked
+  against `total_chars`, which counts UTF-8 bytes (INV-234); once `raw_url` and
+  `git clone` have both failed, an example is reported unreachable (INV-160)
+- A feedback entry saved before the upstream offer is answered reads
+  `offer pending`, and a resumed session presents an unanswered offer once more,
+  batched (INV-281)
+- Module 0 no longer calls a resolved entity a "golden record", a term the
+  documentation reserves for MDM, and states what entity resolution produces.
+  Its `search_docs` queries were re-measured on server 1.37.18 with each one's
+  rank recorded, and two were added
+- MCP routes and dated verifications across the modules were re-measured on
+  servers 1.37.13–1.37.19, including `get_sdk_reference` topic `parameters` in
+  place of `methods`, "read past the first hit" notes where the material ranks
+  second, entity-family `JSON_DATA` behind its own flag, and the macOS cask's
+  `SUPPORTPATH` literal, which changed in 4.5.0 and is now tested by content
+- The visualization teardown question has a turn of its own after the Query
+  Completeness Gate (INV-251). Module 7 counts entities with relationships of
+  either kind, disclosed or discovered, and finds a 2+ degree `find_path` pair
+  from a hub
+- The onboarding overview points licensing questions at Data collection, where
+  the record count is known
+- `svenstaro/upload-release-action` bumped from 2.9.1 to 2.11.5 (#15)
+
+### Fixed in 0.6.1
+
+- **The visualization's encoding self-check stopped correct captures.** It
+  compared every legend row against the distinct source-set keys, but per-source
+  participation rows are not keys, so once the node cap cut a source's
+  single-source entities the totals disagreed on a correctly colored graph —
+  observed on 9,820 entities capped to 1,500: 8 keys against 9 rows. It now
+  compares combination rows with `combination_keys`, reports `not_exercised`
+  when no combination is in view, and is read from the source legend (INV-270)
+- A capped graph's notes described the capped subset as the whole datastore and
+  offered to show them all. The payload now carries `related_total`, and the
+  notes give exact counts
+- `senzing_viz_server.py` fell back to the D3 CDN when the vendored asset was
+  missing, silently breaking the offline guarantee in exactly the settings it
+  exists for. It now refuses to render and exits non-zero before any engine work
+  (INV-091)
+- `OPEN_ME_FIRST.md` described a complete package whatever the archive held. It
+  is now built from the manifest's `included` list, so it never points at a
+  recap, restore guide or database the archive does not carry; a partial
+  `transfer` package says what is missing and what to do instead, and a backup
+  packaged without the guide carries its own restore step
+- Relationship-bucket match keys were split on every `-`, so a role such as
+  `(ACTING FOR OR ON BEHALF OF:)` or a dashed domain such as `OPEN\-SANCTIONS`
+  was counted as a suppressed feature. Roles are removed and `\-` escapes honored
+  first
+- A Java class that other files reference, in a file not named after it, failed
+  with *"cannot find symbol"* when one program was rebuilt alone. Such a class
+  now goes in a file named after the class (INV-237)
+- `generate_document_pdf.py --help` described itself as the discoveries
+  generator, and its usage now says to pass `--subtitle`, since a document's
+  cover otherwise carries the discoveries subtitle
+
 ## [0.5.3] - 2026-09-04
 
 ### Added in 0.5.3
